@@ -1,6 +1,6 @@
 .DS_Store
 .cache/
-dev-friendship.db
+spy-game.db
 
 dist/
 dist-server/
