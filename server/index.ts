@@ -25,7 +25,7 @@ class Server {
 
     this.app.get("/", (req: express.Request, res: express.Response, next: express.NextFunction) => {
       console.log(`home ${req.ip}`)
-      res.send("Zimzalabim!")
+      res.send("Sunny Side Up!")
     })
 
     this.app.post("/get-user-id", (req: express.Request, res: express.Response, next: express.NextFunction) => {
