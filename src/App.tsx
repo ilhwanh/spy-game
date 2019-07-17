@@ -17,14 +17,14 @@ class App extends React.Component {
 
     const response1 = await api.postRequest("make-room", {})
     if (!response1['success']) {
-      this.setState({ page: "exception" })
+      this.onError()
       return
     }
     const roomKey = response1['payload']['roomKey']
 
     const response2 = await api.postRequest("join-room", { roomKey: roomKey, name: "ASDF" })
     if (!response2['success']) {
-      this.setState({ page: "exception" })
+      this.onError()
       return
     }
     const userId = response2['payload']['userId']
@@ -34,6 +34,10 @@ class App extends React.Component {
 
   onRoomQuit = () => {
     this.setState({ page: "home", userId: null, roomKey: null })
+  }
+
+  onError = () => {
+    this.setState({ page: "exception" })
   }
 
   render = () => {
@@ -57,6 +61,7 @@ class App extends React.Component {
           userId={this.state.userId}
           roomKey={this.state.roomKey}
           onQuit={this.onRoomQuit}
+          onError={this.}
         />
       )
     }

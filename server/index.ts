@@ -3,20 +3,11 @@ import * as cors from "cors"
 import * as uuidv1 from "uuid/v1"
 // import {DAO} from "./dao"
 import * as _ from "lodash"
+import { Room, RoomUser } from "../common/common"
 
 const asyncWrapper = <T> (handler: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<T>) => 
   async (req: express.Request, res: express.Response, next: express.NextFunction) =>
   await handler(req, res, next).catch(next)
-
-interface Room {
-  users: Record<string, RoomUser>
-}
-
-interface RoomUser {
-  name: string,
-  timeToLive: number,
-  status: string
-}
 
 
 class Server {
@@ -55,6 +46,11 @@ class Server {
     }
   }
 
+  expireRoom = (roomKey: string) => {
+    console.log(`Room ${roomKey} has nobody inside. Expired.`)
+    delete this.rooms[roomKey]
+  }
+
   constructor() {
     setTimeout(() => { this.step() }, this.stepInterval)
 
@@ -71,7 +67,7 @@ class Server {
     this.app.post("/make-room", (req: express.Request, res: express.Response, next: express.NextFunction) => {
       console.log(`make-room ${req.ip}`)
       const roomKey = this.generateRoomKey()
-      this.rooms[roomKey] = { users: {} }
+      this.rooms[roomKey] = { master: null, page: "idle", content: null, users: {} }
       res.send(JSON.stringify({
         success: true,
         payload: {
@@ -86,7 +82,11 @@ class Server {
       if (body.roomKey in this.rooms) {
         const uuidUser = uuidv1()
         const roomUser = { name: body.name, timeToLive: this.maxTimeToLive, status: "active" }
-        this.rooms[body.roomKey].users[uuidUser] = roomUser
+        const room = this.rooms[body.roomKey]
+        if (room.master === null) {
+          room.master = uuidUser
+        }
+        room.users[uuidUser] = roomUser
         res.send(JSON.stringify({
           success: true,
           payload: {
@@ -109,6 +109,15 @@ class Server {
         const room = this.rooms[body.roomKey]
         if (body.userId in room.users) {
           delete room.users[body.userId]
+          if (room.master === body.userId) {
+            if (_.keys(room.users).length > 0) {
+              const newMaster = _.keys(room.users)[0]
+              room.master = newMaster
+            }
+            else {
+              this.expireRoom(body.roomKey)
+            }
+          }
           res.send(JSON.stringify({
             success: true,
             payload: {}
@@ -134,14 +143,19 @@ class Server {
       const body = req.body as { roomKey: string, userId: string  }
       if (body.roomKey in this.rooms) {
         const room = this.rooms[body.roomKey]
-        if (!(body.userId in room.users)) {
+        if (body.userId in room.users) {
           const roomUser = room.users[body.userId]
           roomUser.timeToLive = this.maxTimeToLive
           roomUser.status = "active"
 
           res.send(JSON.stringify({
             success: true,
-            payload: {}
+            payload: {
+              isMaster: room.master === body.userId,
+              content: room.content,
+              page: room.page,
+              users: room.users
+            }
           }))
         }
         else {

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "client-dev": "parcel src/index.html",
-    "server-dev": "tsc && node dist-server --dev",
+    "server-dev": "tsc && node dist-server/server --dev",
     "prod": "parcel build src/index.html -d dist && tsc && node dist-server/server"
   },
   "author": "",
