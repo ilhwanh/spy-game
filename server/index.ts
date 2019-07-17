@@ -15,9 +15,9 @@ class Server {
   // dao = DAO.bootstrap()
   rooms: Record<string, Room> = {}
 
-  maxTimeToLive = 20000
+  maxTimeToLive = 10000
   stepInterval = 500
-  disconnectedInterval = 5000
+  disconnectedInterval = 3000
 
   static bootstrap(): Server {
     return new Server()
@@ -33,7 +33,7 @@ class Server {
         }
         if (user.timeToLive <= 0) {
           console.log(`${user.name} (${userId}) is timed out from room ${roomKey}`)
-          delete room.users[userId]
+          this.quitFromRoom(roomKey, userId)
         }
       })
     })
@@ -53,6 +53,20 @@ class Server {
   expireRoom = (roomKey: string) => {
     console.log(`Room ${roomKey} has nobody inside. Expired.`)
     delete this.rooms[roomKey]
+  }
+
+  quitFromRoom = (roomKey: string, userId: string) => {
+    const room = this.rooms[roomKey]
+    delete room.users[userId]
+    if (room.master === userId) {
+      if (_.keys(room.users).length > 0) {
+        const newMaster = _.keys(room.users)[0]
+        room.master = newMaster
+      }
+      else {
+        this.expireRoom(roomKey)
+      }
+    }
   }
 
   constructor() {
@@ -112,16 +126,7 @@ class Server {
       if (body.roomKey in this.rooms) {
         const room = this.rooms[body.roomKey]
         if (body.userId in room.users) {
-          delete room.users[body.userId]
-          if (room.master === body.userId) {
-            if (_.keys(room.users).length > 0) {
-              const newMaster = _.keys(room.users)[0]
-              room.master = newMaster
-            }
-            else {
-              this.expireRoom(body.roomKey)
-            }
-          }
+          this.quitFromRoom(body.roomKey, body.userId)
           res.send(JSON.stringify({
             success: true,
             payload: {}
