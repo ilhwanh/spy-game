@@ -85,7 +85,7 @@ class Server {
     this.app.post("/make-room", (req: express.Request, res: express.Response, next: express.NextFunction) => {
       console.log(`make-room ${req.ip}`)
       const roomKey = this.generateRoomKey()
-      this.rooms[roomKey] = { master: null, page: "idle", content: null, users: {} }
+      this.rooms[roomKey] = { master: null, page: "idle", content: null, users: {}, gamemode: "same" }
       res.send(JSON.stringify({
         success: true,
         payload: {
@@ -165,6 +165,32 @@ class Server {
               page: room.page,
               users: room.users
             }
+          }))
+        }
+        else {
+          res.send(JSON.stringify({
+            success: false,
+            payload: {}
+          }))
+        }
+      }
+      else {
+        res.send(JSON.stringify({
+          success: false,
+          payload: {}
+        }))
+      }
+    })
+
+    this.app.post("/start", (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      console.log(`start ${req.ip}`)
+      const body = req.body as { roomKey: string, userId: string }
+      if (body.roomKey in this.rooms) {
+        const room = this.rooms[body.roomKey]
+        if (room.master === body.userId) {
+          res.send(JSON.stringify({
+            success: true,
+            payload: {}
           }))
         }
         else {
