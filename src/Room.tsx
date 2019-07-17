@@ -33,6 +33,11 @@ export class Room extends React.Component {
     this.props.onQuit()
   }
 
+  onClickStart = async () => {
+    this.setState({ page: "starting" })
+    
+  }
+
   constructor(props) {
     super(props)
     this.heartbeat()
@@ -75,7 +80,17 @@ export class Room extends React.Component {
             })
           }
         </div>
-        <br></br>
+        {
+          this.state.isMaster ? (
+            <br>
+              <button onClick={this.onClickStart}>
+                게임 시작
+              </button>
+            </br>
+          ) : (
+            <br></br>
+          )
+        }
         <button onClick={this.onClickQuit} disabled={!this.state.quitButtonEnabled}>
           나가기
         </button>
