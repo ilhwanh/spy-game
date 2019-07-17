@@ -61,7 +61,7 @@ class App extends React.Component {
           userId={this.state.userId}
           roomKey={this.state.roomKey}
           onQuit={this.onRoomQuit}
-          onError={this.}
+          onError={this.onError}
         />
       )
     }
