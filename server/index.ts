@@ -1,7 +1,7 @@
 import * as express from "express"
 import * as cors from "cors"
 import * as uuidv1 from "uuid/v1"
-import {DAO} from "./dao"
+// import {DAO} from "./dao"
 import * as _ from "lodash"
 
 const asyncWrapper = <T> (handler: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<T>) => 
@@ -21,7 +21,7 @@ interface RoomUser {
 
 class Server {
   app: express.Application
-  dao = DAO.bootstrap()
+  // dao = DAO.bootstrap()
   rooms: Record<string, Room> = {}
 
   maxTimeToLive = 60000
@@ -33,10 +33,11 @@ class Server {
   }
 
   step = () => {
-    Object.values(this.rooms).forEach((room) => {
-      Object.entries(room.users).forEach(([userId, user]) => {
+    _.toPairs(this.rooms).forEach(([roomKey, room]) => {
+      _.toPairs(room.users).forEach(([userId, user]) => {
         user.timeToLive -= this.stepInterval
         if (user.timeToLive <= 0) {
+          console.log(`${user.name} (${userId}) is timed out from room ${roomKey}`)
           delete room.users[userId]
         }
       })
@@ -48,9 +49,8 @@ class Server {
   generateRoomKey = () => {
     while (true) {
       const key = uuidv1().slice(0, 5).toUpperCase()
-      if (key !in this.rooms) {
+      if (!(key in this.rooms)) {
         return key
-        break
       }
     }
   }
@@ -71,6 +71,7 @@ class Server {
     this.app.post("/make-room", (req: express.Request, res: express.Response, next: express.NextFunction) => {
       console.log(`make-room ${req.ip}`)
       const roomKey = this.generateRoomKey()
+      this.rooms[roomKey] = { users: {} }
       res.send(JSON.stringify({
         success: true,
         payload: {
@@ -84,7 +85,7 @@ class Server {
       const body = req.body as { roomKey: string, name: string }
       if (body.roomKey in this.rooms) {
         const uuidUser = uuidv1()
-        const roomUser = { name: name, timeToLive: this.maxTimeToLive, status: "active" }
+        const roomUser = { name: body.name, timeToLive: this.maxTimeToLive, status: "active" }
         this.rooms[body.roomKey].users[uuidUser] = roomUser
         res.send(JSON.stringify({
           success: true,
@@ -133,7 +134,7 @@ class Server {
       const body = req.body as { roomKey: string, userId: string  }
       if (body.roomKey in this.rooms) {
         const room = this.rooms[body.roomKey]
-        if (body.userId !in room.users) {
+        if (!(body.userId in room.users)) {
           const roomUser = room.users[body.userId]
           roomUser.timeToLive = this.maxTimeToLive
           roomUser.status = "active"
