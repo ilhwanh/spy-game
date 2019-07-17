@@ -9,7 +9,8 @@ class App extends React.Component {
   state = {
     page: "home",
     userId: null,
-    roomKey: null
+    roomKey: null,
+    roomKeyInput: ""
   }
 
   onClickMakeRoom = async () => {
@@ -32,6 +33,25 @@ class App extends React.Component {
     this.setState({ page: "room", userId: userId, roomKey: roomKey })
   }
 
+  onClickJoinRoom = () => {
+    this.setState({ page: "join-room-name" })
+  }
+
+  onChangeJoinRoomNameKey = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ roomKeyInput: e.target.value })
+  }
+
+  onSubmitJoinRoomName = async (e: React.MouseEvent<HTMLInputElement, MouseEvent>) => {
+    e.preventDefault()
+    this.setState({ page: "joining-room" })
+    const response1 = await api.postRequest("join-room", { roomKey: this.state.roomKeyInput, name: "GUEST1" })
+    if (!response1['success']) {
+      this.setState({ page: "home"})
+      return
+    }
+    this.setState({ page: "room", userId: response1['payload']['userId'], roomKey: this.state.roomKeyInput })
+  }
+
   onRoomQuit = () => {
     this.setState({ page: "home", userId: null, roomKey: null })
   }
@@ -45,6 +65,17 @@ class App extends React.Component {
       return (
         <div>
           <button onClick={this.onClickMakeRoom}>방 만들기</button>
+          <button onClick={this.onClickJoinRoom}>방 참여</button>
+        </div>
+      )
+    }
+    else if (this.state.page === "join-room-name") {
+      return (
+        <div>
+          <form>
+            <input type="text" onChange={this.onChangeJoinRoomNameKey}></input>
+            <input type="submit" onClick={this.onSubmitJoinRoomName}></input>
+          </form>
         </div>
       )
     }
@@ -52,6 +83,13 @@ class App extends React.Component {
       return (
         <div>
           방 만드는 중
+        </div>
+      )
+    }
+    else if (this.state.page === "joining-room") {
+      return (
+        <div>
+          방 참여 중
         </div>
       )
     }

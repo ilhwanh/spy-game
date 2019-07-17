@@ -15,7 +15,7 @@ class Server {
   // dao = DAO.bootstrap()
   rooms: Record<string, Room> = {}
 
-  maxTimeToLive = 60000
+  maxTimeToLive = 20000
   stepInterval = 500
   disconnectedInterval = 5000
 
@@ -27,6 +27,10 @@ class Server {
     _.toPairs(this.rooms).forEach(([roomKey, room]) => {
       _.toPairs(room.users).forEach(([userId, user]) => {
         user.timeToLive -= this.stepInterval
+        if (room.users[userId].status ==="active" && user.timeToLive <= this.maxTimeToLive - this.disconnectedInterval) {
+          console.log(`${user.name} (${userId}) in room ${roomKey} is not responding`)
+          room.users[userId].status = "disconnected"
+        }
         if (user.timeToLive <= 0) {
           console.log(`${user.name} (${userId}) is timed out from room ${roomKey}`)
           delete room.users[userId]
