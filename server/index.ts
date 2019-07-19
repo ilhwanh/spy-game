@@ -10,6 +10,25 @@ const asyncWrapper = <T> (handler: (req: express.Request, res: express.Response,
   await handler(req, res, next).catch(next)
 
 
+class Game {
+}
+
+
+class GameKeyword extends Game {
+  subject = ""
+  random = false
+  numSpies = 0
+
+  getContents = (userIds: string[]) => {
+    const userIdsShuffled = _.shuffle(userIds)
+    const spies = userIdsShuffled.slice(0, this.numSpies)
+    const nonSpies = userIdsShuffled.slice(this.numSpies, userIdsShuffled.length)
+
+    
+  }
+}
+
+
 class Server {
   app: express.Application
   // dao = DAO.bootstrap()
@@ -182,8 +201,34 @@ class Server {
       }
     })
 
-    this.app.post("/start", (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      console.log(`start ${req.ip}`)
+    this.app.post("/start-round", (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      console.log(`start-round ${req.ip}`)
+      const body = req.body as { roomKey: string, userId: string }
+      if (body.roomKey in this.rooms) {
+        const room = this.rooms[body.roomKey]
+        if (room.master === body.userId) {
+          res.send(JSON.stringify({
+            success: true,
+            payload: {}
+          }))
+        }
+        else {
+          res.send(JSON.stringify({
+            success: false,
+            payload: {}
+          }))
+        }
+      }
+      else {
+        res.send(JSON.stringify({
+          success: false,
+          payload: {}
+        }))
+      }
+    })
+
+    this.app.post("/stop-round", (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      console.log(`stop-round ${req.ip}`)
       const body = req.body as { roomKey: string, userId: string }
       if (body.roomKey in this.rooms) {
         const room = this.rooms[body.roomKey]

@@ -2,8 +2,9 @@ export interface Room {
   master: string | null,
   page: string,
   gamemode: string,
-  content: any,
-  users: Record<string, RoomUser>
+  content: Record<string, ContentSame>,
+  users: Record<string, RoomUser>,
+  round: number
 }
 
 export interface RoomUser {
@@ -13,5 +14,10 @@ export interface RoomUser {
 }
 
 export interface ConfigSame {
-  subject: string
+  subject: string,
+  random: boolean
+}
+
+export interface ContentSame {
+  keyword: string
 }
