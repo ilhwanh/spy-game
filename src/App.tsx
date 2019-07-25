@@ -9,8 +9,9 @@ class App extends React.Component {
   state = {
     page: "home",
     userId: null,
-    roomKey: null,
-    roomKeyInput: ""
+    roomKey: "",
+    roomKeyInput: "",
+    name: ""
   }
 
   onClickMakeRoom = async () => {
@@ -23,7 +24,7 @@ class App extends React.Component {
     }
     const roomKey = response1['payload']['roomKey']
 
-    const response2 = await api.postRequest("join-room", { roomKey: roomKey, name: "ASDF" })
+    const response2 = await api.postRequest("join-room", { roomKey: roomKey, name: this.state.name })
     if (!response2['success']) {
       this.onError()
       return
@@ -33,23 +34,30 @@ class App extends React.Component {
     this.setState({ page: "room", userId: userId, roomKey: roomKey })
   }
 
-  onClickJoinRoom = () => {
-    this.setState({ page: "join-room-name" })
-  }
-
-  onChangeJoinRoomNameKey = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ roomKeyInput: e.target.value })
-  }
-
-  onSubmitJoinRoomName = async (e: React.MouseEvent<HTMLInputElement, MouseEvent>) => {
-    e.preventDefault()
+  onClickJoinRoom = async () => {
     this.setState({ page: "joining-room" })
-    const response1 = await api.postRequest("join-room", { roomKey: this.state.roomKeyInput, name: "GUEST1" })
+    const response1 = await api.postRequest("join-room", { roomKey: this.state.roomKeyInput, name: this.state.name })
     if (!response1['success']) {
       this.setState({ page: "home"})
       return
     }
     this.setState({ page: "room", userId: response1['payload']['userId'], roomKey: this.state.roomKeyInput })
+  }
+
+  onChangeName = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ name: e.target.value })
+  }
+
+  checkName = () => {
+    return this.state.name !== "" && this.state.name.length <= 20
+  }
+
+  onChangeJoinRoomNameKey = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ roomKeyInput: e.target.value.toUpperCase() })
+  }
+
+  onSubmitJoinRoomName = async (e: React.MouseEvent<HTMLInputElement, MouseEvent>) => {
+    
   }
 
   onRoomQuit = () => {
@@ -63,19 +71,45 @@ class App extends React.Component {
   render = () => {
     if (this.state.page === "home") {
       return (
-        <div>
-          <button onClick={this.onClickMakeRoom}>방 만들기</button>
-          <button onClick={this.onClickJoinRoom}>방 참여</button>
-        </div>
-      )
-    }
-    else if (this.state.page === "join-room-name") {
-      return (
-        <div>
-          <form>
-            <input type="text" onChange={this.onChangeJoinRoomNameKey}></input>
-            <input type="submit" onClick={this.onSubmitJoinRoomName}></input>
-          </form>
+        <div className="row">
+          <div className="col-12 text-center mt-5">
+            <h1><strong>스파이게임</strong></h1>
+          </div>
+          <div className="col-12 text-center mt-3">
+            <div className="input-group mb-3 w-100">
+              <div className="input-group-prepend">
+                <span className="input-group-text" id="basic-addon1">이름</span>
+              </div>
+              <input
+                type="text"
+                className="form-control"
+                aria-label="Username"
+                aria-describedby="basic-addon1"
+                onChange={this.onChangeName}
+              />
+            </div>
+            <div className="input-group mb-3">
+              <div className="input-group-prepend">
+                <span className="input-group-text" id="basic-addon2">코드</span>
+              </div>
+              <input
+                type="text"
+                className="form-control"
+                aria-label="Roomcode"
+                aria-describedby="basic-addon2"
+                onChange={this.onChangeJoinRoomNameKey}
+              />
+            </div>
+          </div>
+          <div className="col-12 text-center mt-3">
+            <button
+              disabled={!this.checkName()}
+              className="btn btn-primary"
+              onClick={this.state.roomKeyInput === "" ? this.onClickMakeRoom : this.onClickJoinRoom}
+            >
+              {this.state.roomKeyInput === "" ? "방 만들기" : "방 입장"}
+            </button>
+          </div>
         </div>
       )
     }

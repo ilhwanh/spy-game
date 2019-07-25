@@ -4,7 +4,6 @@ import * as uuidv1 from "uuid/v1"
 // import {DAO} from "./dao"
 import * as _ from "lodash"
 import { Room, RoomUser, KeywordElem, GameConfig } from "../common/common"
-import * as fs from "fs"
 
 const asyncWrapper = <T> (handler: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<T>) => 
   async (req: express.Request, res: express.Response, next: express.NextFunction) =>
@@ -49,8 +48,8 @@ const getContents = (userIds: string[], config: GameConfig) => {
   const falses = keywords.slice(1, config.numFalses + 1)
 
   return {
-    ...toDict(spies.map(userId => { return [userId, { truth: "", falses: _.shuffle([truth, ...falses]) }] })),
-    ...toDict(nonSpies.map(userId => { return [userId, { truth: truth, falses: _.shuffle(falses) }] })),
+    ...toDict(spies.map(userId => { return [userId, { truth: "", falses: _.shuffle([truth, ...falses]) }] }) as [string, KeywordElem][]),
+    ...toDict(nonSpies.map(userId => { return [userId, { truth: truth, falses: _.shuffle(falses) }] }) as [string, KeywordElem][])
   } as Record<string, KeywordElem>
 }
 
@@ -87,7 +86,7 @@ class Server {
 
   generateRoomKey = () => {
     while (true) {
-      const key = uuidv1().slice(0, 5).toUpperCase()
+      const key = uuidv1().slice(0, 3).toUpperCase()
       if (!(key in this.rooms)) {
         return key
       }
