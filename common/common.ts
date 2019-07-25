@@ -2,7 +2,7 @@ export interface Room {
   master: string | null,
   page: string,
   gamemode: string,
-  content: Record<string, ContentSame>,
+  content: Record<string, KeywordElem>,
   users: Record<string, RoomUser>,
   round: number
 }
@@ -13,11 +13,13 @@ export interface RoomUser {
   status: string
 }
 
-export interface ConfigSame {
-  subject: string,
-  random: boolean
+export interface GameConfig {
+  numSpies: number,
+  mix: boolean,
+  numFalses: number
 }
 
-export interface ContentSame {
-  keyword: string
+export interface KeywordElem {
+  truth: string
+  falses: string[]
 }

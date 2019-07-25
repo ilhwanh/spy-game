@@ -3,31 +3,60 @@ import * as cors from "cors"
 import * as uuidv1 from "uuid/v1"
 // import {DAO} from "./dao"
 import * as _ from "lodash"
-import { Room, RoomUser } from "../common/common"
+import { Room, RoomUser, KeywordElem, GameConfig } from "../common/common"
+import * as fs from "fs"
 
 const asyncWrapper = <T> (handler: (req: express.Request, res: express.Response, next: express.NextFunction) => Promise<T>) => 
   async (req: express.Request, res: express.Response, next: express.NextFunction) =>
   await handler(req, res, next).catch(next)
 
-
-class Game {
-}
-
-
-class GameKeyword extends Game {
-  subject = ""
-  random = false
-  numSpies = 0
-
-  getContents = (userIds: string[]) => {
-    const userIdsShuffled = _.shuffle(userIds)
-    const spies = userIdsShuffled.slice(0, this.numSpies)
-    const nonSpies = userIdsShuffled.slice(this.numSpies, userIdsShuffled.length)
-
-    
+const game = {
+  "keyword": {
+    "subjects": [
+      {
+        "title": "과일",
+        "keywords": ["매실", "무화과", "버찌", "복분자", "복숭아", "블랙베리", "블루베리", "산딸기", "살구", "수박", "앵두", "자두", "천도복숭아", "체리", "포도", "감", "대추", "머루", "모과", "무화과", "배", "사과", "석류", "으름", "월귤", "귤", "금귤", "영귤", "유자", "레드향", "천혜향", "한라봉", "딸기", "수박", "참외", "멜론", "파인애플", "바나나"]
+      },
+      {
+        "title": "장소",
+        "keywords": ["화장실", "교실", "사무실", "집", "안방", "거실", "빌딩", "로비", "호텔", "도서관", "식당"]
+      },
+      {
+        "title": "핸드폰",
+        "keywords": ["아이폰", "갤럭시", "화웨이", "블랙베리"]
+      },
+      {
+        "title": "걸그룹",
+        "keywords": ["레드벨벳", "ITZY", "트와이스", "블랙베리"]
+      }
+    ]
   }
 }
 
+const keywordSet = game.keyword.subjects
+
+const choice = <T> (arr: T[]) => {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+export const toDict = <T> (pairs: [string, T][]) => {
+  return pairs.map(([key, value]) => { return { [key]: value } }).reduce((a, b) => { return { ...a, ...b } })
+}
+
+const getContents = (userIds: string[], config: GameConfig) => {
+  const userIdsShuffled = _.shuffle(userIds)
+  const spies = userIdsShuffled.slice(0, config.numSpies)
+  const nonSpies = userIdsShuffled.slice(config.numSpies, userIdsShuffled.length)
+
+  const keywords = _.shuffle(config.mix ? _.flatMap(keywordSet, elem => elem.keywords) : choice(keywordSet).keywords)
+  const truth = keywords[0]
+  const falses = keywords.slice(1, config.numFalses + 1)
+
+  return {
+    ...toDict(spies.map(userId => { return [userId, { truth: "", falses: _.shuffle([truth, ...falses]) }] })),
+    ...toDict(nonSpies.map(userId => { return [userId, { truth: truth, falses: _.shuffle(falses) }] })),
+  } as Record<string, KeywordElem>
+}
 
 class Server {
   app: express.Application
@@ -104,7 +133,7 @@ class Server {
     this.app.post("/make-room", (req: express.Request, res: express.Response, next: express.NextFunction) => {
       console.log(`make-room ${req.ip}`)
       const roomKey = this.generateRoomKey()
-      this.rooms[roomKey] = { master: null, page: "idle", content: null, users: {}, gamemode: "same" }
+      this.rooms[roomKey] = { master: null, page: "idle", content: {}, users: {}, gamemode: "same", round: 0 }
       res.send(JSON.stringify({
         success: true,
         payload: {
@@ -180,7 +209,8 @@ class Server {
             success: true,
             payload: {
               isMaster: room.master === body.userId,
-              content: room.content,
+              content: room.content[body.userId],
+              round: room.round,
               page: room.page,
               users: room.users
             }
@@ -203,9 +233,12 @@ class Server {
 
     this.app.post("/start-round", (req: express.Request, res: express.Response, next: express.NextFunction) => {
       console.log(`start-round ${req.ip}`)
-      const body = req.body as { roomKey: string, userId: string }
+      const body = req.body as { roomKey: string, userId: string, config: GameConfig }
       if (body.roomKey in this.rooms) {
         const room = this.rooms[body.roomKey]
+        const content = getContents(_.keys(room.users), body.config)
+        room.round += 1
+        room.content = content
         if (room.master === body.userId) {
           res.send(JSON.stringify({
             success: true,
@@ -232,6 +265,7 @@ class Server {
       const body = req.body as { roomKey: string, userId: string }
       if (body.roomKey in this.rooms) {
         const room = this.rooms[body.roomKey]
+        room.content = {}
         if (room.master === body.userId) {
           res.send(JSON.stringify({
             success: true,

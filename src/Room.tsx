@@ -1,7 +1,7 @@
 import * as React from 'react'
 import * as api from './api'
 import * as _ from "lodash"
-import { RoomUser } from "../common/common"
+import { RoomUser, GameConfig } from "../common/common"
 
 export class Room extends React.Component {
   props: {
@@ -15,7 +15,9 @@ export class Room extends React.Component {
     quitButtonEnabled: true,
     isMaster: false,
     page: "idle",
-    users: {}
+    users: {},
+    content: {},
+    targetConfig: { numSpies: 1, mix: false, numFalses: 4 } as GameConfig
   }
 
   stepInterval = 500
@@ -36,6 +38,47 @@ export class Room extends React.Component {
   onClickStart = async () => {
     this.setState({ page: "starting" })
     
+    const response1 = await api.postRequest("start-round", {
+      userId: this.props.userId,
+      roomKey: this.props.roomKey,
+      config: this.state.targetConfig
+    })
+    if (!response1['success']) {
+      this.props.onError()
+      return
+    }
+
+    this.setState({ page: "round" })
+  }
+
+  onClickStop = async () => {
+    this.setState({ page: "stopping" })
+    
+    const response1 = await api.postRequest("stop-round", {
+      userId: this.props.userId,
+      roomKey: this.props.roomKey
+    })
+    if (!response1['success']) {
+      this.props.onError()
+      return
+    }
+
+    this.setState({ page: "idle" })
+  }
+
+  onChangeMix = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.checked
+    this.setState({ targetConfig: { ...this.state.targetConfig, mix: value } })
+  }
+
+  onChangeNumSpies = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = Number.parseInt(e.target.value)
+    this.setState({ targetConfig: { ...this.state.targetConfig, numSpies: value } })
+  }
+
+  onChangeNumFalses = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = Number.parseInt(e.target.value)
+    this.setState({ targetConfig: { ...this.state.targetConfig, numFalses: value } })
   }
 
   constructor(props) {
@@ -51,13 +94,14 @@ export class Room extends React.Component {
     }
 
     const isMaster = response1['payload']['isMaster']
-    const page = response1['payload']['page']
     const users = response1['payload']['users']
-    this.setState({ page: page, isMaster: isMaster, users: users })
+    const content = response1['payload']['content']
+    this.setState({ isMaster: isMaster, users: users, content: content })
     this.heartbeatHandler = setTimeout(this.heartbeat, this.stepInterval)
   }
 
   render = () => {
+    const numUsers = _.keys(this.state.users).length
     return (
       <div>
         Hello
@@ -82,15 +126,47 @@ export class Room extends React.Component {
         </div>
         {
           this.state.isMaster ? (
-            <br>
-              <button onClick={this.onClickStart}>
-                게임 시작
+            <div>
+              <button
+                onClick={this.onClickStart}
+                disabled={this.state.page !== "idle" || numUsers < 2}
+              >
+                라운드 시작
               </button>
-            </br>
+              <button
+                onClick={this.onClickStop}
+                disabled={this.state.page !== "round"}
+              >
+                라운드 종료
+              </button>
+              스파이 수
+              <select onChange={this.onChangeNumSpies}>
+                {
+                  [1, 2, 3, 4, 5].filter(num => num < numUsers).map(num => {
+                    return <option value={num}>{num}</option>
+                  })
+                }
+              </select>
+              함정 수
+              <select onChange={this.onChangeNumFalses}>
+                {
+                  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => {
+                    return <option value={num}>{num}</option>
+                  })
+                }
+              </select>
+              <input type="checkbox" name="mix" value="mix" onChange={this.onChangeMix}/>
+              주제 섞기
+            </div>
           ) : (
-            <br></br>
+            <div>
+              방장이 아닙니다
+            </div>
           )
         }
+        <div>
+          {JSON.stringify(this.state.content)}
+        </div>
         <button onClick={this.onClickQuit} disabled={!this.state.quitButtonEnabled}>
           나가기
         </button>
