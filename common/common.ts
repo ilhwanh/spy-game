@@ -4,7 +4,8 @@ export interface Room {
   gamemode: string,
   content: Record<string, KeywordElem>,
   users: Record<string, RoomUser>,
-  round: number
+  round: number,
+  roundStarted: number
 }
 
 export interface RoomUser {

@@ -19,7 +19,8 @@ export class Room extends React.Component {
     page: "idle",
     users: {} as Record<string, RoomUser>,
     content: {} as KeywordElem,
-    targetConfig: { numSpies: 1, mix: false, numFalses: 4 } as GameConfig
+    targetConfig: { numSpies: 1, mix: false, numFalses: 4 } as GameConfig,
+    roundStarted: 0
   }
 
   stepInterval = 500
@@ -98,7 +99,8 @@ export class Room extends React.Component {
     const isMaster = response1['payload']['isMaster']
     const users = response1['payload']['users']
     const content = response1['payload']['content']
-    this.setState({ isMaster: isMaster, users: users, content: content })
+    const roundStarted = response1['payload']['roundStarted']
+    this.setState({ isMaster: isMaster, users: users, content: content, roundStarted: roundStarted })
     this.heartbeatHandler = setTimeout(this.heartbeat, this.stepInterval)
   }
 
@@ -110,7 +112,7 @@ export class Room extends React.Component {
           <h1><span className="badge badge-info">{this.props.roomKey}</span></h1>
         </div>
         <div className="col-12 text-center">
-          <Content content={this.state.content}/>
+          <Content content={this.state.content} roundStarted={this.state.roundStarted}/>
         </div>
         <div className="col-12 mt-3 text-center">
           <ActiveUsers users={this.state.users}/>
@@ -145,7 +147,7 @@ export class Room extends React.Component {
                     <select className="custom-select" onChange={this.onChangeNumSpies}>
                       {
                         [1, 2, 3, 4, 5].filter(num => num < numUsers).map(num => {
-                          return <option value={num}>{num}</option>
+                          return <option value={num} selected={num === this.state.targetConfig.numSpies}>{num}</option>
                         })
                       }
                     </select>
@@ -159,7 +161,7 @@ export class Room extends React.Component {
                     <select className="custom-select" onChange={this.onChangeNumFalses}>
                       {
                         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => {
-                          return <option value={num}>{num}</option>
+                          return <option value={num} selected={num === this.state.targetConfig.numFalses}>{num}</option>
                         })
                       }
                     </select>
