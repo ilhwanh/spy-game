@@ -203,7 +203,7 @@ class Server {
     })
 
     this.app.post("/heartbeat", (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      console.log(`heartbeat ${req.ip}`)
+      // console.log(`heartbeat ${req.ip}`)
       const body = req.body as { roomKey: string, userId: string  }
       if (body.roomKey in this.rooms) {
         const room = this.rooms[body.roomKey]
